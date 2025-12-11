@@ -25,9 +25,11 @@ def sign_commit_hash(commit_hash):
     try:
         # Read the private key
         with open('student_private.pem', 'rb') as f:
-            private_key = serialization.load_pem_private_key(f.read(), password=None, backend=None)
+            private_key = serialization.load_pem_private_key(
+                f.read(), password=None
+            )
         
-        # Sign the commit hash using RSA-PSS with SHA-256
+        # Sign commit hash
         signature = private_key.sign(
             commit_hash.encode('utf-8'),
             padding.PSS(
@@ -37,105 +39,65 @@ def sign_commit_hash(commit_hash):
             hashes.SHA256()
         )
         
-        # Encode signature as base64
-        encoded_signature = base64.b64encode(signature).decode('utf-8')
-        return encoded_signature
-    except FileNotFoundError:
-        print("Error: student_private.pem not found")
-        return None
+        return base64.b64encode(signature).decode('utf-8')
+
     except Exception as e:
         print(f"Error signing commit hash: {e}")
         return None
 
 def verify_submission_files():
-    """Verify that all required files exist"""
     required_files = ['student_public.pem', 'encrypted_seed.txt']
-    missing_files = []
-    
-    for file in required_files:
-        if not Path(file).exists():
-            missing_files.append(file)
-    
-    return missing_files
+    missing = [f for f in required_files if not Path(f).exists()]
+    return missing
 
 def main():
-    print("[*] Generating submission proof...")
-    print()
+    print("[*] Generating submission proof...\n")
     
-    # Check for required files
     missing = verify_submission_files()
     if missing:
-        print(f"[X] Error: Missing files: {', '.join(missing)}")
-        print("    Please ensure you have completed STEP 1 (request_seed.py)")
+        print(f"[X] Missing files: {', '.join(missing)}")
         return False
     
-    print("[+] All required files found")
-    print()
-    
-    # Get commit hash
     commit_hash = get_commit_hash()
     if not commit_hash:
-        print("[X] Error: Could not get commit hash")
         return False
     
-    print(f"[+] Current commit hash: {commit_hash}")
-    print()
+    print(f"[+] Commit hash: {commit_hash}\n")
     
-    # Sign the commit hash
-    print("[*] Signing commit hash with RSA-PSS (SHA-256)...")
-    encrypted_signature = sign_commit_hash(commit_hash)
-    if not encrypted_signature:
-        print("[X] Error: Could not sign commit hash")
+    print("[*] Signing commit hash...")
+    signature = sign_commit_hash(commit_hash)
+    if not signature:
         return False
     
-    print(f"[+] Signature generated successfully")
-    print()
-    
-    # Read student public key
-    print("[*] Reading student public key...")
+    print("[+] Signature created\n")
+
     with open('student_public.pem', 'r') as f:
-        student_public_key = f.read()
-    print("[+] Student public key loaded")
-    print()
-    
-    # Read encrypted seed
-    print("[*] Reading encrypted seed...")
+        pubkey = f.read()
+
     with open('encrypted_seed.txt', 'r') as f:
         encrypted_seed = f.read()
-    print("[+] Encrypted seed loaded")
-    print()
-    
+
     print("=" * 70)
-    print("SUBMISSION DATA - Copy these values to Partnr")
+    print("SUBMISSION DATA (paste these in Partnr)")
     print("=" * 70)
-    print()
-    
-    print("1. GitHub Repository URL:")
-    print("   https://github.com/MadhavaKandala/pki-2fa-microservice")
-    print()
-    
-    print("2. Commit Hash:")
+
+    print("\n1. GitHub Repository URL:")
+    print("   https://github.com/palaparthisupriya/PKI-Based-2fa-Microservice")
+
+    print("\n2. Commit Hash:")
     print(f"   {commit_hash}")
-    print()
-    
-    print("3. Encrypted Commit Signature:")
-    print(f"   {encrypted_signature}")
-    print()
-    
-    print("4. Student Public Key:")
-    print(student_public_key)
-    print()
-    
-    print("5. Encrypted Seed:")
+
+    print("\n3. Encrypted Commit Signature:")
+    print(f"   {signature}")
+
+    print("\n4. Student Public Key:")
+    print(pubkey)
+
+    print("\n5. Encrypted Seed:")
     print(encrypted_seed)
-    print()
-    
+
     print("=" * 70)
-    print("All data is ready for submission on Partnr!")
-    print("=" * 70)
-    
     return True
 
 if __name__ == '__main__':
-    success = main()
-    exit(0 if success else 1)
+    exit(0 if main() else 1)
